@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { db, uploadLogo, deleteLogo } from '../../../lib/supabase';
+import { useToast } from '../../../lib/toast';
 import { Client, DocType } from '../../../types';
 import { getCurrencySymbol } from '../../../lib/countries';
 import confetti from 'canvas-confetti';
@@ -26,6 +27,7 @@ interface FormItem {
 
 export default function NewDocument() {
   const router = useRouter();
+  const { toast } = useToast();
   const [docType, setDocType] = useState<DocType>('invoice');
   const [docNumber, setDocNumber] = useState('');
   const [issueDate, setIssueDate] = useState('');
@@ -196,21 +198,22 @@ export default function NewDocument() {
         notes: notes,
         terms: terms,
       }, docItems);
-
-      // Trigger Confetti
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#8b5cf6', '#a78bfa', '#f43f5e', '#10b981', '#3b82f6']
-      });
-
-      router.push(`/invoices/${saved.id}`);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+ 
+       // Trigger Confetti
+       confetti({
+         particleCount: 150,
+         spread: 80,
+         origin: { y: 0.6 },
+         colors: ['#8b5cf6', '#a78bfa', '#f43f5e', '#10b981', '#3b82f6']
+       });
+ 
+       router.push(`/invoices/${saved.id}`);
+     } catch (err) {
+       console.error(err);
+       toast('Failed to save invoice. Please try again.', 'error');
+     } finally {
+       setSaving(false);
+     }
   };
 
   return (

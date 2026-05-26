@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import html2pdf from 'html2pdf.js';
 import {
   Printer,
   Trash2,
@@ -52,8 +53,41 @@ export default function DocumentDetails() {
     loadData();
   }, [docId]);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!doc || !profile) return;
+
+    const element = document.getElementById('invoice-preview');
+    if (!element) return;
+
+      try {
+        const opt = {
+          margin: 0.5,
+          filename: `${doc.doc_number}.pdf`,
+          image: {
+            type: 'jpeg' as const,
+            quality: 0.98
+          },
+          html2canvas: {
+            scale: 2
+          },
+          jsPDF: {
+            unit: 'in' as const,
+            format: 'letter' as const,
+            orientation: 'portrait' as const
+          }
+        };
+
+        // Wait a moment for any pending renders
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Generate PDF
+        await html2pdf().set(opt).from(element).save();
+
+        toast('Invoice saved as PDF', 'success');
+      } catch (err) {
+        console.error('PDF generation error:', err);
+        toast('Failed to generate PDF. Please try printing instead.', 'error');
+      }
   };
 
   const handleStatusChange = async (newStatus: Document['status']) => {
