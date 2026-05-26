@@ -225,7 +225,7 @@ create policy "Users view own profile history" on profile_history
 
 drop policy if exists "Trigger inserts profile history" on profile_history;
 create policy "Trigger inserts profile history" on profile_history
-  for insert with select (true);
+  for insert with check (true);
 
 -- ============================================================
 -- 6. STORAGE — Logo / Photo bucket
