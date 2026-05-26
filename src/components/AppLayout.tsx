@@ -91,31 +91,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground transition-colors duration-300">
       {/* Mobile Navbar */}
-      <header className="md:hidden flex items-center justify-between p-4 glass-panel border-b border-border no-print z-50 sticky top-0 bg-background/80 backdrop-blur-md">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+      <header className="md:hidden flex items-center justify-between p-3 glass-panel border-b border-border no-print z-50 sticky top-0 bg-background/80 backdrop-blur-md">
+        <div className="flex items-center space-x-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground shadow-[0_0_15px_rgba(139,92,246,0.5)] shrink-0">
             B
           </div>
-          <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent truncate">
             BillMe
           </span>
           {isDemo && (
-            <span className="text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0">
               DEMO
             </span>
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 shrink-0">
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Toggle theme"
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -124,15 +126,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 transform ${
+        className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:static md:flex flex-col w-64 glass-panel border-r border-border p-5 no-print transition-all duration-300 ease-in-out z-40 bg-background/95 md:bg-transparent`}
+        } md:translate-x-0 md:static md:flex md:w-64 flex-col glass-panel border-r border-border p-5 no-print transition-all duration-300 ease-in-out z-40 bg-background/95 md:bg-transparent overflow-y-auto`}
       >
         <div className="hidden md:flex items-center space-x-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-xl text-primary-foreground shadow-[0_0_20px_rgba(139,92,246,0.6)]">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-xl text-primary-foreground shadow-[0_0_20px_rgba(139,92,246,0.6)] shrink-0">
             B
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
               BillMe
             </span>
@@ -153,8 +155,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onClick={() => setSidebarOpen(false)}
           className="flex items-center justify-center space-x-2 w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transform hover:-translate-y-0.5 transition-all duration-200 mb-6"
         >
-          <PlusCircle size={18} />
-          <span>Create Invoice</span>
+          <PlusCircle size={18} className="shrink-0" />
+          <span className="truncate">Create Invoice</span>
         </Link>
 
         {/* Navigation Items */}
@@ -172,8 +174,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
                 }`}
               >
-                <item.icon size={20} className={isActive ? 'text-primary' : 'text-muted-foreground'} />
-                <span>{item.name}</span>
+                <item.icon size={20} className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="truncate">{item.name}</span>
               </Link>
             );
           })}
@@ -182,18 +184,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Bottom Profile + Theme + Sign Out */}
         <div className="pt-4 border-t border-border mt-auto space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold border border-border">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold border border-border shrink-0">
                 {profile?.business_name ? profile.business_name.substring(0, 2).toUpperCase() : 'B'}
               </div>
-              <div className="truncate max-w-[120px]">
+              <div className="truncate min-w-0">
                 <h4 className="font-semibold text-sm truncate">{profile?.business_name || 'My Business'}</h4>
                 <p className="text-xs text-muted-foreground truncate">{profile?.email || user?.email}</p>
               </div>
             </div>
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors hidden md:block"
+              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors hidden md:block shrink-0"
               title="Toggle Theme"
             >
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -204,7 +206,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             onClick={handleSignOut}
             className="flex items-center space-x-2 w-full py-2.5 px-4 rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"
           >
-            <LogOut size={16} />
+            <LogOut size={16} className="shrink-0" />
             <span>Sign Out</span>
           </button>
         </div>

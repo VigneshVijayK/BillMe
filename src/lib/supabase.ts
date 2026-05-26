@@ -105,6 +105,52 @@ function saveDemoDB(db: DemoDB) {
   }
 }
 
+// ─── Storage (Logo / Photo upload) ─────────────────────────────────────────────
+
+export async function uploadLogo(file: File): Promise<string> {
+  if (demoMode) throw new Error('File upload not available in demo mode. Sign in to upload.');
+  const s = getSupabase();
+  const { data: { user } } = await s.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const ext = file.name.split('.').pop() || 'png';
+  const fileName = `${user.id}/${Date.now()}-logo.${ext}`;
+
+  const { error: uploadErr } = await s.storage.from('logos').upload(fileName, file, {
+    cacheControl: '3600',
+    upsert: true,
+  });
+  if (uploadErr) throw uploadErr;
+
+  const { data: { publicUrl } } = s.storage.from('logos').getPublicUrl(fileName);
+  return publicUrl;
+}
+
+export async function deleteLogo(logoUrl: string): Promise<void> {
+  if (demoMode) return;
+  if (!logoUrl || !logoUrl.includes('/logos/')) return;
+  const s = getSupabase();
+  const path = logoUrl.split('/logos/')[1];
+  if (!path) return;
+  await s.storage.from('logos').remove([path]);
+}
+
+export async function getProfileHistory(): Promise<{
+  id: number;
+  changed_at: string;
+  changed_fields: Record<string, boolean>;
+  previous_values: Record<string, string>;
+  new_values: Record<string, string>;
+}[]> {
+  if (demoMode) return [];
+  const s = getSupabase();
+  const { data: { user } } = await s.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await s.rpc('get_profile_history', { p_profile_id: user.id });
+  if (error) throw error;
+  return data || [];
+}
+
 // ─── Database API ─────────────────────────────────────────────────────────────
 export const db = {
   async getProfile(forceRefresh = false): Promise<Profile> {
@@ -202,7 +248,7 @@ export const db = {
     const s = getSupabase();
     const { data, error } = await s.from('documents').select('*, clients(*), document_items(*)').eq('id', id).single();
     if (error) {
-      if (error.code === 'PGRST116') return null;
+      if (!data) return null;
       throw error;
     }
     return { ...data, client: data.clients, items: data.document_items };

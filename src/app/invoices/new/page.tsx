@@ -13,7 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import Image from 'next/image';
-import { db } from '../../../lib/supabase';
+import { db, uploadLogo, deleteLogo } from '../../../lib/supabase';
 import { Client, DocType } from '../../../types';
 import { getCurrencySymbol } from '../../../lib/countries';
 import confetti from 'canvas-confetti';
@@ -44,6 +44,7 @@ export default function NewDocument() {
 
   // Logo upload state
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Line items
   const [items, setItems] = useState<FormItem[]>([
@@ -108,14 +109,30 @@ export default function NewDocument() {
   const taxAmount = (subtotal * taxRate) / 100;
   const total = subtotal + taxAmount - discount;
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo must be under 2 MB.');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      if (logoPreview) {
+        await deleteLogo(logoPreview).catch(() => {});
+      }
+      const url = await uploadLogo(file);
+      setLogoPreview(url);
+    } catch {
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -241,20 +258,24 @@ export default function NewDocument() {
           <div className="flex flex-col space-y-2">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Business Logo</span>
             <label className="group relative w-32 h-32 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all bg-secondary/25">
-              {logoPreview ? (
+              {uploadingLogo ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : logoPreview ? (
                 <>
                   <Image src={logoPreview} alt="Logo" fill className="object-cover" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold">
-                    Change Logo
+                    Change
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-2 text-muted-foreground group-hover:text-primary transition-colors">
-                  <ImageIcon size={28} className="mb-2" />
+                  <ImageIcon size={28} className="mb-1" />
                   <span className="text-[10px] font-bold">Upload Logo</span>
                 </div>
               )}
-              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoUpload} className="hidden" disabled={uploadingLogo} />
             </label>
           </div>
 

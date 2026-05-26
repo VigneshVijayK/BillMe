@@ -239,38 +239,40 @@ export default function ExpensesPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase bg-secondary/20">
-                    <th className="py-4 px-6">Category</th>
-                    <th className="py-4 px-6">Description</th>
-                    <th className="py-4 px-6">Date</th>
-                    <th className="py-4 px-6">Amount</th>
-                    <th className="py-4 px-6 text-right">Delete</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {pagedExpenses.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-secondary/10 transition-colors">
-                      <td className="py-4 px-6 font-bold text-foreground text-sm">{exp.category}</td>
-                      <td className="py-4 px-6 text-muted-foreground text-sm max-w-xs truncate">{exp.description || 'No notes'}</td>
-                      <td className="py-4 px-6 text-muted-foreground text-sm">{exp.expense_date}</td>
-                      <td className="py-4 px-6 font-extrabold text-red-400 text-sm">
-                        -{getCurrencySymbol(currency)}{exp.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => setDeleteTarget(exp.id)}
-                          className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
+            <div className="overflow-x-auto -mx-6 sm:-mx-0">
+              <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase bg-secondary/20">
+                      <th className="py-4 px-6 whitespace-nowrap">Category</th>
+                      <th className="py-4 px-6 whitespace-nowrap">Description</th>
+                      <th className="py-4 px-6 whitespace-nowrap">Date</th>
+                      <th className="py-4 px-6 whitespace-nowrap">Amount</th>
+                      <th className="py-4 px-6 whitespace-nowrap text-right">Delete</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pagedExpenses.map((exp) => (
+                      <tr key={exp.id} className="hover:bg-secondary/10 transition-colors">
+                        <td className="py-4 px-6 font-bold text-foreground text-sm whitespace-nowrap">{exp.category}</td>
+                        <td className="py-4 px-6 text-muted-foreground text-sm max-w-[150px] truncate">{exp.description || 'No notes'}</td>
+                        <td className="py-4 px-6 text-muted-foreground text-sm whitespace-nowrap">{exp.expense_date}</td>
+                        <td className="py-4 px-6 font-extrabold text-red-400 text-sm whitespace-nowrap">
+                          -{getCurrencySymbol(currency)}{exp.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => setDeleteTarget(exp.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

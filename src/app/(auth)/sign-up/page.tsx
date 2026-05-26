@@ -21,7 +21,11 @@ export default function SignUp() {
     const { error: signUpError } = await signUp(email, password, businessName);
     setLoading(false);
     if (signUpError) {
-      setError(signUpError);
+      if (signUpError.toLowerCase().includes('rate limit')) {
+        setError('Email rate limit reached. Please wait a moment or try Demo Mode from the sign-in page.');
+      } else {
+        setError(signUpError);
+      }
     } else {
       setConfirmationSent(true);
     }

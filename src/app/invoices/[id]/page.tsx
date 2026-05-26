@@ -175,7 +175,7 @@ export default function DocumentDetails() {
             <div className="flex flex-col sm:flex-row justify-between gap-6 border-b border-border pb-8">
               <div className="space-y-4">
                 {profile?.logo_url && (
-                  <Image src={profile.logo_url} alt="Logo" width={64} height={64} className="max-h-16 w-auto object-contain rounded-xl" />
+                  <Image src={profile.logo_url} alt="Logo" width={64} height={64} className="max-h-16 w-auto max-w-full object-contain rounded-xl" />
                 )}
                 <div>
                   <h2 className="text-2xl font-black tracking-tight">{profile?.business_name || 'Acme Agency'}</h2>
@@ -268,7 +268,7 @@ export default function DocumentDetails() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 bg-secondary/20 p-4 rounded-xl text-center text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-secondary/20 p-4 rounded-xl text-center text-xs">
               <div>
                 <div className="text-muted-foreground font-bold uppercase mb-1">Issue Date</div>
                 <div className="font-bold text-sm">{doc.issue_date}</div>
@@ -286,22 +286,23 @@ export default function DocumentDetails() {
         )}
 
         {/* Itemized Table (Shared across templates with styling variations) */}
-        <div className="mt-10 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className={`border-b text-xs font-bold uppercase ${
-                template === 'minimal' ? 'border-foreground text-foreground' : 'border-border text-muted-foreground'
-              }`}>
-                <th className="py-3.5 px-4 w-[60%]">Item Description</th>
-                <th className="py-3.5 px-4 w-[15%] text-center">Qty</th>
-                <th className="py-3.5 px-4 w-[15%] text-right">Rate</th>
-                <th className="py-3.5 px-4 w-[10%] text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {doc.items?.map((item) => (
-                <tr key={item.id} className="text-sm hover:bg-secondary/5">
-                  <td className="py-4 px-4 font-semibold text-foreground">{item.description}</td>
+        <div className="mt-10 overflow-x-auto -mx-6 sm:-mx-0">
+          <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className={`border-b text-xs font-bold uppercase ${
+                  template === 'minimal' ? 'border-foreground text-foreground' : 'border-border text-muted-foreground'
+                }`}>
+                  <th className="py-3.5 px-4 whitespace-nowrap">Item Description</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap text-center">Qty</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap text-right">Rate</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {doc.items?.map((item) => (
+                  <tr key={item.id} className="text-sm hover:bg-secondary/5">
+                    <td className="py-4 px-4 font-semibold text-foreground">{item.description}</td>
                   <td className="py-4 px-4 text-center text-muted-foreground">{item.quantity}</td>
                   <td className="py-4 px-4 text-right text-muted-foreground">
 {getCurrencySymbol(doc.currency)}{item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -313,6 +314,7 @@ export default function DocumentDetails() {
               ))}
             </tbody>
           </table>
+            </div>
         </div>
 
         {/* Pricing calculations Summary */}

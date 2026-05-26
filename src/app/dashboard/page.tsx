@@ -99,30 +99,30 @@ export default function Dashboard() {
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Invoiced */}
-        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-primary/20">
-          <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold text-muted-foreground">Total Invoiced</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+        <div className="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 hover:md:scale-[1.02] hover:border-primary/20">
+          <div className="flex justify-between items-start gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Total Invoiced</span>
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
               <FileText size={20} />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black">{getCurrencySymbol(currency)}{totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-2xl sm:text-3xl font-black break-all">{getCurrencySymbol(currency)}{totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
             <span className="text-xs text-muted-foreground mt-1 block">Accumulated gross invoice volume</span>
           </div>
           <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
         </div>
 
         {/* Total Collected */}
-        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-primary/20">
-          <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold text-muted-foreground">Payments Collected</span>
-            <div className="p-2 rounded-xl bg-green-500/10 text-green-400">
+        <div className="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 hover:md:scale-[1.02] hover:border-primary/20">
+          <div className="flex justify-between items-start gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Payments Collected</span>
+            <div className="p-2 rounded-xl bg-green-500/10 text-green-400 shrink-0">
               <CheckCircle2 size={20} />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black">{getCurrencySymbol(currency)}{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-2xl sm:text-3xl font-black break-all">{getCurrencySymbol(currency)}{totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
             <span className="text-xs text-green-400 mt-1 flex items-center gap-1 font-semibold">
               <TrendingUp size={12} /> Live Cash Flow
             </span>
@@ -131,30 +131,30 @@ export default function Dashboard() {
         </div>
 
         {/* Pending Payments */}
-        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-primary/20">
-          <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold text-muted-foreground">Outstanding Balances</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+        <div className="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 hover:md:scale-[1.02] hover:border-primary/20">
+          <div className="flex justify-between items-start gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Outstanding Balances</span>
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 shrink-0">
               <Clock size={20} />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black">{getCurrencySymbol(currency)}{totalPending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-2xl sm:text-3xl font-black break-all">{getCurrencySymbol(currency)}{totalPending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
             <span className="text-xs text-amber-400 mt-1 block">Awaiting client payment</span>
           </div>
           <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
         </div>
 
         {/* Profit Margin */}
-        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-primary/20">
-          <div className="flex justify-between items-start">
-            <span className="text-sm font-semibold text-muted-foreground">Profit & Margin</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+        <div className="glass-panel rounded-2xl p-5 sm:p-6 relative overflow-hidden transition-all duration-300 hover:md:scale-[1.02] hover:border-primary/20">
+          <div className="flex justify-between items-start gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-muted-foreground">Profit & Margin</span>
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 shrink-0">
               <TrendingUp size={20} />
             </div>
           </div>
-          <div className="mt-4">
-            <h3 className="text-3xl font-black">{profitMargin.toFixed(1)}%</h3>
+          <div className="mt-3 sm:mt-4">
+            <h3 className="text-2xl sm:text-3xl font-black">{profitMargin.toFixed(1)}%</h3>
             <span className="text-xs text-muted-foreground mt-1 block">
               Net Profit: {getCurrencySymbol(currency)}{netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
@@ -183,47 +183,49 @@ export default function Dashboard() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase">
-                    <th className="pb-3">Invoice ID</th>
-                    <th className="pb-3">Client</th>
-                    <th className="pb-3">Due Date</th>
-                    <th className="pb-3">Amount</th>
-                    <th className="pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {invoices.slice(0, 5).map((doc) => (
-                    <tr key={doc.id} className="text-sm hover:bg-secondary/20 transition-colors">
-                      <td className="py-4 font-bold text-foreground">
-                        <Link href={`/invoices/${doc.id}`} className="hover:text-primary">
-                          {doc.doc_number}
-                        </Link>
-                      </td>
-                      <td className="py-4 text-muted-foreground">{doc.client?.name || 'Walk-in Client'}</td>
-                      <td className="py-4 text-muted-foreground">{doc.due_date || 'N/A'}</td>
-                      <td className="py-4 font-bold text-foreground">
-                         {getCurrencySymbol(doc.currency)}{doc.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
-                            doc.status === 'paid'
-                              ? 'bg-green-500/10 text-green-400'
-                              : doc.status === 'overdue'
-                              ? 'bg-red-500/10 text-red-400'
-                              : 'bg-amber-500/10 text-amber-400'
-                          }`}
-                        >
-                          {doc.status}
-                        </span>
-                      </td>
+            <div className="overflow-x-auto -mx-6 sm:-mx-0">
+              <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase">
+                      <th className="pb-3 whitespace-nowrap pr-3">Invoice ID</th>
+                      <th className="pb-3 whitespace-nowrap pr-3">Client</th>
+                      <th className="pb-3 whitespace-nowrap pr-3">Due Date</th>
+                      <th className="pb-3 whitespace-nowrap pr-3">Amount</th>
+                      <th className="pb-3 whitespace-nowrap">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {invoices.slice(0, 5).map((doc) => (
+                      <tr key={doc.id} className="text-sm hover:bg-secondary/20 transition-colors">
+                        <td className="py-4 font-bold text-foreground whitespace-nowrap pr-3">
+                          <Link href={`/invoices/${doc.id}`} className="hover:text-primary">
+                            {doc.doc_number}
+                          </Link>
+                        </td>
+                        <td className="py-4 text-muted-foreground whitespace-nowrap pr-3">{doc.client?.name || 'Walk-in Client'}</td>
+                        <td className="py-4 text-muted-foreground whitespace-nowrap pr-3">{doc.due_date || 'N/A'}</td>
+                        <td className="py-4 font-bold text-foreground whitespace-nowrap pr-3">
+                           {getCurrencySymbol(doc.currency)}{doc.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
+                              doc.status === 'paid'
+                                ? 'bg-green-500/10 text-green-400'
+                                : doc.status === 'overdue'
+                                ? 'bg-red-500/10 text-red-400'
+                                : 'bg-amber-500/10 text-amber-400'
+                            }`}
+                          >
+                            {doc.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

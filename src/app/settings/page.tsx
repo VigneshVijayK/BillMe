@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Save,
-  Image as ImageIcon
+  Image as ImageIcon,
+  History
 } from 'lucide-react';
-import { db } from '../../lib/supabase';
+import { db, uploadLogo, deleteLogo, getProfileHistory } from '../../lib/supabase';
 import { Profile } from '../../types';
 import { COUNTRIES, DEFAULT_COUNTRY, getCountryConfig } from '../../lib/countries';
 
@@ -24,6 +25,16 @@ export default function SettingsPage() {
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [logoUrl, setLogoUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [profileHistory, setProfileHistory] = useState<{
+    id: number;
+    changed_at: string;
+    changed_fields: Record<string, boolean>;
+    previous_values: Record<string, string>;
+    new_values: Record<string, string>;
+  }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -45,6 +56,20 @@ export default function SettingsPage() {
       }
     }
     loadProfile();
+
+    // Fetch profile change history
+    async function loadHistory() {
+      setHistoryLoading(true);
+      try {
+        const h = await getProfileHistory();
+        setProfileHistory(h);
+      } catch {
+        // History not available (e.g. table doesn't exist yet)
+      } finally {
+        setHistoryLoading(false);
+      }
+    }
+    loadHistory();
   }, []);
 
   const handleCountryChange = (newCountry: string) => {
@@ -76,14 +101,33 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Logo must be under 2 MB.');
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      // Delete old logo first
+      if (logoUrl) {
+        await deleteLogo(logoUrl).catch(() => {});
+      }
+      const url = await uploadLogo(file);
+      setLogoUrl(url);
+    } catch (err) {
+      console.error(err);
+      // Fallback to base64 if storage upload fails
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -116,7 +160,11 @@ export default function SettingsPage() {
             </div>
             
             <label className="group relative w-24 h-24 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all bg-secondary/20 shrink-0">
-              {logoUrl ? (
+              {uploadingLogo ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : logoUrl ? (
                 <>
                   <Image src={logoUrl} alt="Logo" fill className="object-cover" />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px] font-bold">
@@ -129,7 +177,7 @@ export default function SettingsPage() {
                   <span className="text-[9px] font-bold">Upload</span>
                 </div>
               )}
-              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoUpload} className="hidden" disabled={uploadingLogo} />
             </label>
           </div>
 
@@ -242,6 +290,60 @@ export default function SettingsPage() {
           </div>
 
         </form>
+      </div>
+
+      {/* Profile Change History */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-10 border border-border shadow-lg">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <div className="flex items-center gap-3">
+            <History size={20} className="text-muted-foreground" />
+            <div>
+              <span className="text-sm font-bold text-foreground">Profile Change History</span>
+              <p className="text-xs text-muted-foreground">Track all modifications to your business settings</p>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground">{showHistory ? '▲' : '▼'}</span>
+        </button>
+
+        {showHistory && (
+          <div className="mt-6 space-y-3 max-h-80 overflow-y-auto">
+            {historyLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              </div>
+            ) : profileHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No changes recorded yet. Save your settings to see history here.</p>
+            ) : (
+              profileHistory.map((entry) => (
+                <div key={entry.id} className="bg-secondary/20 rounded-xl p-4 text-sm space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {new Date(entry.changed_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {Object.keys(entry.changed_fields).map((field) => (
+                      <div key={field} className="grid grid-cols-3 gap-2 text-xs">
+                        <span className="font-bold text-foreground capitalize">
+                          {field.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-muted-foreground line-through truncate">
+                          {entry.previous_values[field] || '(empty)'}
+                        </span>
+                        <span className="text-green-400 truncate">
+                          {entry.new_values[field] || '(empty)'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

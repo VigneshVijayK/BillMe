@@ -237,87 +237,87 @@ export default function DocumentsPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase bg-secondary/20">
-                  <th className="py-4 px-6">Doc Number</th>
-                  <th className="py-4 px-6">Client</th>
-                  <th className="py-4 px-6">Date</th>
-                  <th className="py-4 px-6">Due Date</th>
-                  <th className="py-4 px-6">Total Amount</th>
-                  <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                  {pagedDocs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-secondary/10 transition-colors group">
-                    <td className="py-4 px-6 font-bold text-foreground">
-                      <Link href={`/invoices/${doc.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
-                        {doc.doc_number}
-                        <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                      </Link>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="font-medium text-foreground">{doc.client?.name || 'Walk-in Client'}</div>
-                      <div className="text-xs text-muted-foreground">{doc.client?.email || 'No email'}</div>
-                    </td>
-                    <td className="py-4 px-6 text-muted-foreground text-sm">{doc.issue_date}</td>
-                    <td className="py-4 px-6 text-muted-foreground text-sm">{doc.due_date || 'N/A'}</td>
-                    <td className="py-4 px-6 font-extrabold text-foreground text-sm">
-                      {getCurrencySymbol(doc.currency)}{doc.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${getStatusStyle(doc.status)}`}>
-                        {doc.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        {/* Convert Estimate Button */}
-                        {doc.doc_type === 'estimate' && (
-                          <button
-                            onClick={() => convertToInvoice(doc)}
-                            className="p-2 rounded-lg hover:bg-green-500/10 text-muted-foreground hover:text-green-400 transition-all"
-                            title="Convert to Invoice"
-                          >
-                            <FileCheck size={18} />
-                          </button>
-                        )}
-
-                        {/* Dropdown status changer for Invoices */}
-                        {doc.doc_type === 'invoice' && doc.status !== 'paid' && (
-                          <button
-                            onClick={() => handleStatusChange(doc.id, 'paid')}
-                            className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-400 transition-all text-xs font-bold"
-                            title="Mark as Paid"
-                          >
-                            Mark Paid
-                          </button>
-                        )}
-
-                        <Link
-                          href={`/invoices/${doc.id}`}
-                          className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
-                          title="View Details"
-                        >
-                          <Eye size={18} />
-                        </Link>
-                        
-                        <button
-                          onClick={() => setDeleteTarget(doc.id)}
-                          className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all"
-                          title="Delete"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+          <div className="overflow-x-auto -mx-6 sm:-mx-0">
+            <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border text-xs text-muted-foreground font-bold uppercase bg-secondary/20">
+                    <th className="py-4 px-6 whitespace-nowrap">Doc Number</th>
+                    <th className="py-4 px-6 whitespace-nowrap">Client</th>
+                    <th className="py-4 px-6 whitespace-nowrap">Date</th>
+                    <th className="py-4 px-6 whitespace-nowrap">Due Date</th>
+                    <th className="py-4 px-6 whitespace-nowrap">Total</th>
+                    <th className="py-4 px-6 whitespace-nowrap">Status</th>
+                    <th className="py-4 px-6 whitespace-nowrap text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                    {pagedDocs.map((doc) => (
+                    <tr key={doc.id} className="hover:bg-secondary/10 transition-colors group">
+                      <td className="py-4 px-6 font-bold text-foreground whitespace-nowrap">
+                        <Link href={`/invoices/${doc.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
+                          {doc.doc_number}
+                          <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary shrink-0" />
+                        </Link>
+                      </td>
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <div className="font-medium text-foreground truncate max-w-[120px] sm:max-w-none">{doc.client?.name || 'Walk-in Client'}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-none">{doc.client?.email || 'No email'}</div>
+                      </td>
+                      <td className="py-4 px-6 text-muted-foreground text-sm whitespace-nowrap">{doc.issue_date}</td>
+                      <td className="py-4 px-6 text-muted-foreground text-sm whitespace-nowrap">{doc.due_date || 'N/A'}</td>
+                      <td className="py-4 px-6 font-extrabold text-foreground text-sm whitespace-nowrap">
+                        {getCurrencySymbol(doc.currency)}{doc.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${getStatusStyle(doc.status)}`}>
+                          {doc.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end space-x-1">
+                          {doc.doc_type === 'estimate' && (
+                            <button
+                              onClick={() => convertToInvoice(doc)}
+                              className="p-2 rounded-lg hover:bg-green-500/10 text-muted-foreground hover:text-green-400 transition-all"
+                              title="Convert to Invoice"
+                            >
+                              <FileCheck size={18} />
+                            </button>
+                          )}
+
+                          {doc.doc_type === 'invoice' && doc.status !== 'paid' && (
+                            <button
+                              onClick={() => handleStatusChange(doc.id, 'paid')}
+                              className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-400 transition-all text-xs font-bold hidden sm:inline-flex"
+                              title="Mark as Paid"
+                            >
+                              Mark Paid
+                            </button>
+                          )}
+
+                          <Link
+                            href={`/invoices/${doc.id}`}
+                            className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-all"
+                            title="View Details"
+                          >
+                            <Eye size={18} />
+                          </Link>
+                          
+                          <button
+                            onClick={() => setDeleteTarget(doc.id)}
+                            className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

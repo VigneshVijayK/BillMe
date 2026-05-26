@@ -20,6 +20,7 @@ interface AuthContextType {
   isDemo: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, businessName: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   enterDemoMode: () => void;
 }
@@ -72,19 +73,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const s = getSupabase();
       const { data, error } = await s.auth.signUp({ email, password });
-      if (error) return { error: error.message };
+      if (error) {
+        if (error.message?.toLowerCase().includes('rate limit')) {
+          return { error: 'Email rate limit exceeded. Please wait a moment before trying again, or try Demo Mode.' };
+        }
+        return { error: error.message };
+      }
       if (data.user) {
-        await s.from('profiles').insert({
-          id: data.user.id,
-          business_name: businessName,
-          email,
-          currency: 'INR',
-          country: 'India',
-        });
+        try {
+          await s.from('profiles').insert({
+            id: data.user.id,
+            business_name: businessName,
+            email,
+            currency: 'INR',
+            country: 'India',
+          });
+        } catch {
+          // Profile creation failure is non-fatal — user can set it up in Settings
+        }
       }
       return { error: null };
     } catch (e: unknown) {
       return { error: e instanceof Error ? e.message : 'An unexpected error occurred' };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const s = getSupabase();
+      const { error } = await s.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: typeof window !== 'undefined'
+            ? `${window.location.origin}/callback`
+            : undefined,
+        },
+      });
+      if (error) throw error;
+    } catch (e: unknown) {
+      console.error('Google sign-in error:', e);
     }
   };
 
@@ -112,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isDemo, signIn, signUp, signOut, enterDemoMode }}>
+    <AuthContext.Provider value={{ user, loading, isDemo, signIn, signUp, signInWithGoogle, signOut, enterDemoMode }}>
       {children}
     </AuthContext.Provider>
   );
