@@ -18,6 +18,25 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
+// ─── Simple In-Memory Cache ──────────────────────────────────────────────────
+const cache = new Map<string, { data: unknown; expiry: number }>();
+const CACHE_TTL = 30_000; // 30 seconds
+
+function cacheGet<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (entry && Date.now() < entry.expiry) return entry.data as T;
+  cache.delete(key);
+  return null;
+}
+
+function cacheSet(key: string, data: unknown) {
+  cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+}
+
+function cacheClear() {
+  cache.clear();
+}
+
 // ─── Demo Mode ────────────────────────────────────────────────────────────────
 let demoMode = false;
 
@@ -28,6 +47,8 @@ export function isDemoMode(): boolean {
 export function setDemoMode(enabled: boolean) {
   demoMode = enabled;
 }
+
+export { cacheClear };
 
 const DEMO_STORAGE_KEY = 'billme_demo_db';
 
@@ -51,36 +72,56 @@ const DEMO_PROFILE: Profile = {
   country: 'India',
 };
 
+function genId(prefix = ''): string {
+  const id = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+  return prefix ? `${prefix}_${id}` : id;
+}
+
+function demoStorage() {
+  if (typeof window === 'undefined') return null;
+  return localStorage;
+}
+
 function getDemoDB(): DemoDB {
-  if (typeof window === 'undefined') {
+  const storage = demoStorage();
+  if (!storage) {
     return { profile: DEMO_PROFILE, clients: [], documents: [], documentItems: [], expenses: [] };
   }
-  const stored = localStorage.getItem(DEMO_STORAGE_KEY);
+  const stored = storage.getItem(DEMO_STORAGE_KEY);
   if (stored) {
     try { return JSON.parse(stored); } catch {}
   }
   const db: DemoDB = { profile: DEMO_PROFILE, clients: [], documents: [], documentItems: [], expenses: [] };
-  localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(db));
+  storage.setItem(DEMO_STORAGE_KEY, JSON.stringify(db));
   return db;
 }
 
 function saveDemoDB(db: DemoDB) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(db));
+  const storage = demoStorage();
+  if (storage) {
+    storage.setItem(DEMO_STORAGE_KEY, JSON.stringify(db));
   }
 }
 
 // ─── Database API ─────────────────────────────────────────────────────────────
 export const db = {
-  async getProfile(): Promise<Profile> {
+  async getProfile(forceRefresh = false): Promise<Profile> {
     if (demoMode) return getDemoDB().profile;
+    const cacheKey = 'profile';
+    if (!forceRefresh) {
+      const cached = cacheGet<Profile>(cacheKey);
+      if (cached) return cached;
+    }
     const s = getSupabase();
     const { data: { user } } = await s.auth.getUser();
     const { data, error } = await s.from('profiles').select('*').eq('id', user?.id).single();
     if (error) {
-      if (error.code === 'PGRST116') throw new Error('Profile not found. Please complete your business settings.');
+      if (!data) throw new Error('Profile not found. Please complete your business settings.');
       throw error;
     }
+    cacheSet(cacheKey, data);
     return data;
   },
 
@@ -92,8 +133,9 @@ export const db = {
       return d.profile;
     }
     const s = getSupabase();
-    const { data, error } = await s.from('profiles').upsert({ ...profile, updated_at: new Date().toISOString() }).select().single();
+    const { data, error } = await s.from('profiles').upsert(profile).select().single();
     if (error) throw error;
+    cacheClear();
     return data;
   },
 
@@ -106,7 +148,7 @@ export const db = {
   },
 
   async addClient(client: Omit<Client, 'id' | 'user_id' | 'created_at'>): Promise<Client> {
-    const newClient: Client = { ...client, id: 'c-' + Math.random().toString(36).substr(2, 9), user_id: 'demo-user', created_at: new Date().toISOString() };
+    const newClient: Client = { ...client, id: genId(), user_id: 'demo-user', created_at: new Date().toISOString() };
     if (demoMode) {
       const d = getDemoDB();
       d.clients.unshift(newClient);
@@ -167,9 +209,9 @@ export const db = {
   },
 
   async saveDocument(doc: Omit<Document, 'id' | 'user_id' | 'created_at' | 'items' | 'client'>, items: Omit<DocumentItem, 'id' | 'document_id'>[]): Promise<Document> {
-    const docId = 'd-' + Math.random().toString(36).substr(2, 9);
+    const docId = genId();
     const newDoc: Document = { ...doc, id: docId, user_id: 'demo-user', created_at: new Date().toISOString() };
-    const newItems: DocumentItem[] = items.map((item, i) => ({ ...item, id: `i-${docId}-${i}`, document_id: docId }));
+    const newItems: DocumentItem[] = items.map((item) => ({ ...item, id: genId('item'), document_id: docId }));
 
     if (demoMode) {
       const d = getDemoDB();
@@ -181,12 +223,12 @@ export const db = {
 
     const s = getSupabase();
     const { data: { user } } = await s.auth.getUser();
-    const { data: savedDoc, error: docErr } = await s.from('documents').insert({ ...doc, user_id: user?.id }).select().single();
+    const { data: savedDoc, error: docErr } = await s.from('documents').insert({ ...doc, user_id: user?.id }).select('*, clients(*)').single();
     if (docErr) throw docErr;
     const itemsToInsert = items.map(i => ({ ...i, document_id: savedDoc.id }));
     const { data: savedItems, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
     if (itemsErr) throw itemsErr;
-    return { ...savedDoc, items: savedItems, client: null };
+    return { ...savedDoc, client: savedDoc.clients, items: savedItems };
   },
 
   async updateDocumentStatus(id: string, status: Document['status']): Promise<boolean> {
@@ -225,7 +267,7 @@ export const db = {
   },
 
   async addExpense(expense: Omit<Expense, 'id' | 'user_id' | 'created_at'>): Promise<Expense> {
-    const newExpense: Expense = { ...expense, id: 'e-' + Math.random().toString(36).substr(2, 9), user_id: 'demo-user', created_at: new Date().toISOString() };
+    const newExpense: Expense = { ...expense, id: genId('exp'), user_id: 'demo-user', created_at: new Date().toISOString() };
     if (demoMode) {
       const d = getDemoDB();
       d.expenses.unshift(newExpense);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
@@ -8,11 +8,19 @@ import { useAuth } from '../../../lib/auth';
 
 export default function SignIn() {
   const router = useRouter();
-  const { signIn, enterDemoMode } = useAuth();
+  const { user, signIn, enterDemoMode } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const pendingRedirect = useRef(false);
+
+  useEffect(() => {
+    if (pendingRedirect.current && user) {
+      pendingRedirect.current = false;
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +32,7 @@ export default function SignIn() {
       setError(signInError);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      pendingRedirect.current = true;
     }
   };
 

@@ -63,8 +63,8 @@ export default function NewDocument() {
     /* eslint-disable react-hooks/set-state-in-effect */
     const year = new Date().getFullYear();
     const prefix = docType === 'invoice' ? 'INV' : 'EST';
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    setDocNumber(`${prefix}-${year}-${rand}`);
+    const seq = Date.now().toString(36).toUpperCase();
+    setDocNumber(`${prefix}-${year}-${seq}`);
 
     const today = new Date().toISOString().split('T')[0];
     setIssueDate(today);
@@ -384,7 +384,7 @@ export default function NewDocument() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.unit_price || ''}
+                          value={item.unit_price}
                           onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
                           className="w-full bg-secondary/20 border border-border rounded-lg pl-6 pr-2 py-1.5 text-sm focus:outline-none"
                           placeholder="0.00"

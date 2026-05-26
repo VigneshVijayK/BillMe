@@ -12,6 +12,7 @@ import { COUNTRIES, DEFAULT_COUNTRY, getCountryConfig } from '../../lib/countrie
 
 export default function SettingsPage() {
   const [, setProfile] = useState<Profile | null>(null);
+
   const [loading, setLoading] = useState(true);
 
   const [businessName, setBusinessName] = useState('');

@@ -9,6 +9,9 @@ import {
 import { db } from '../../lib/supabase';
 import { Expense } from '../../types';
 import { getCurrencySymbol } from '../../lib/countries';
+import ConfirmModal from '../../components/ConfirmModal';
+import Pagination, { usePagination } from '../../components/Pagination';
+import { useToast } from '../../lib/toast';
 
 const CATEGORIES = [
   'Software & Subscriptions',
@@ -22,9 +25,12 @@ const CATEGORIES = [
 ];
 
 export default function ExpensesPage() {
+  const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState('INR');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form states
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -44,6 +50,7 @@ export default function ExpensesPage() {
         if (profile) setCurrency(profile.currency);
       } catch (err) {
         console.error(err);
+        toast('Failed to load expenses', 'error');
       } finally {
         setLoading(false);
       }
@@ -51,11 +58,13 @@ export default function ExpensesPage() {
     loadData();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpenseDate(new Date().toISOString().split('T')[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || Number(amount) <= 0) {
+      toast('Please enter a valid amount', 'warning');
       return;
     }
 
@@ -71,21 +80,34 @@ export default function ExpensesPage() {
       setAmount('');
       setDescription('');
       setCategory(CATEGORIES[0]);
+      toast('Expense logged successfully', 'success');
     } catch (err) {
       console.error(err);
+      toast('Failed to log expense', 'error');
     } finally {
       setAdding(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to remove this expense record?')) {
-      const success = await db.deleteExpense(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const success = await db.deleteExpense(deleteTarget);
       if (success) {
-        setExpenses(expenses.filter(e => e.id !== id));
+        setExpenses(expenses.filter(e => e.id !== deleteTarget));
+        toast('Expense deleted successfully', 'success');
       }
+    } catch {
+      toast('Failed to delete expense', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
+
+  const PAGE_SIZE = 10;
+  const { page, totalPages, items: pagedExpenses, setPage } = usePagination(expenses, PAGE_SIZE);
 
   const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -130,7 +152,7 @@ export default function ExpensesPage() {
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Amount *</label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{getCurrencySymbol(currency)}</span>
                 <input
                   type="number"
                   step="0.01"
@@ -229,7 +251,7 @@ export default function ExpensesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {expenses.map((exp) => (
+                  {pagedExpenses.map((exp) => (
                     <tr key={exp.id} className="hover:bg-secondary/10 transition-colors">
                       <td className="py-4 px-6 font-bold text-foreground text-sm">{exp.category}</td>
                       <td className="py-4 px-6 text-muted-foreground text-sm max-w-xs truncate">{exp.description || 'No notes'}</td>
@@ -239,7 +261,7 @@ export default function ExpensesPage() {
                       </td>
                       <td className="py-4 px-6 text-right">
                         <button
-                          onClick={() => handleDelete(exp.id)}
+                          onClick={() => setDeleteTarget(exp.id)}
                           className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         >
                           <Trash2 size={16} />
@@ -251,9 +273,21 @@ export default function ExpensesPage() {
               </table>
             </div>
           )}
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
 
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Expense"
+        message="Are you sure you want to remove this expense record?"
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

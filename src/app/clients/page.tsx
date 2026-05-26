@@ -12,10 +12,16 @@ import {
 } from 'lucide-react';
 import { db } from '../../lib/supabase';
 import { Client } from '../../types';
+import ConfirmModal from '../../components/ConfirmModal';
+import Pagination, { usePagination } from '../../components/Pagination';
+import { useToast } from '../../lib/toast';
 
 export default function ClientsPage() {
+  const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -32,6 +38,7 @@ export default function ClientsPage() {
       setClients(data);
     } catch (e) {
       console.error(e);
+      toast('Failed to load clients', 'error');
     } finally {
       setLoading(false);
     }
@@ -40,6 +47,7 @@ export default function ClientsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,19 +69,32 @@ export default function ClientsPage() {
       setPhone('');
       setAddress('');
       setTaxNum('');
+      toast('Client added successfully', 'success');
     } catch (e) {
       console.error(e);
+      toast('Failed to add client', 'error');
     } finally {
       setAdding(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this client? This will remove them from the database.')) {
-      const success = await db.deleteClient(id);
+  const PAGE_SIZE = 12;
+  const { page, totalPages, items: pagedClients, setPage } = usePagination(clients, PAGE_SIZE);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const success = await db.deleteClient(deleteTarget);
       if (success) {
-        setClients(clients.filter(c => c.id !== id));
+        setClients(clients.filter(c => c.id !== deleteTarget));
+        toast('Client deleted successfully', 'success');
       }
+    } catch {
+      toast('Failed to delete client', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -199,7 +220,7 @@ export default function ClientsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {clients.map((client) => (
+              {pagedClients.map((client) => (
                 <div
                   key={client.id}
                   className="bg-secondary/20 hover:bg-secondary/35 rounded-2xl p-5 border border-border hover:border-primary/20 transition-all flex flex-col justify-between space-y-4 group"
@@ -217,7 +238,7 @@ export default function ClientsPage() {
                         )}
                       </div>
                       <button
-                        onClick={() => handleDelete(client.id)}
+                        onClick={() => setDeleteTarget(client.id)}
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         title="Delete Client"
                       >
@@ -257,9 +278,21 @@ export default function ClientsPage() {
               ))}
             </div>
           )}
+          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
 
       </div>
+      
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Client"
+        message="Are you sure you want to delete this client? This will remove them from the database."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

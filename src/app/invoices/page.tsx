@@ -14,12 +14,18 @@ import {
 import { db } from '../../lib/supabase';
 import { Document, DocStatus } from '../../types';
 import { getCurrencySymbol } from '../../lib/countries';
+import ConfirmModal from '../../components/ConfirmModal';
+import Pagination, { usePagination } from '../../components/Pagination';
+import { useToast } from '../../lib/toast';
 
 export default function DocumentsPage() {
+  const { toast } = useToast();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'invoice' | 'estimate'>('invoice');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -28,6 +34,7 @@ export default function DocumentsPage() {
       setDocuments(data);
     } catch (e) {
       console.error(e);
+      toast('Failed to load documents', 'error');
     } finally {
       setLoading(false);
     }
@@ -36,28 +43,45 @@ export default function DocumentsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this document?')) {
-      const success = await db.deleteDocument(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const success = await db.deleteDocument(deleteTarget);
       if (success) {
-        setDocuments(documents.filter(d => d.id !== id));
+        setDocuments(documents.filter(d => d.id !== deleteTarget));
+        toast('Document deleted successfully', 'success');
       }
+    } catch {
+      toast('Failed to delete document', 'error');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
   const handleStatusChange = async (id: string, newStatus: DocStatus) => {
-    const success = await db.updateDocumentStatus(id, newStatus);
-    if (success) {
-      setDocuments(documents.map(d => d.id === id ? { ...d, status: newStatus } : d));
+    try {
+      const success = await db.updateDocumentStatus(id, newStatus);
+      if (success) {
+        setDocuments(documents.map(d => d.id === id ? { ...d, status: newStatus } : d));
+        toast(`Document marked as ${newStatus}`, 'success');
+      }
+    } catch {
+      toast('Failed to update document status', 'error');
     }
   };
 
   const convertToInvoice = async (estimate: Document) => {
-    if (!estimate.items) return;
+    if (!estimate.items || estimate.items.length === 0) {
+      toast('Cannot convert an estimate with no line items', 'warning');
+      return;
+    }
     // eslint-disable-next-line react-hooks/purity
-    const invNumber = 'INV-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900);
+    const invNumber = 'INV-' + new Date().getFullYear() + '-' + Date.now().toString(36).toUpperCase();
     
     const now = new Date();
     const issueDate = now.toISOString().split('T')[0];
@@ -86,15 +110,18 @@ export default function DocumentsPage() {
         amount: item.amount,
       })));
 
-      // Mark estimate as sent / completed
       await db.updateDocumentStatus(estimate.id, 'sent');
       
+      toast('Estimate converted to invoice successfully', 'success');
       loadDocuments();
       setActiveTab('invoice');
     } catch (e) {
       console.error(e);
+      toast('Failed to convert estimate to invoice', 'error');
     }
   };
+
+  const PAGE_SIZE = 10;
 
   // Filter documents
   const filteredDocs = documents.filter(d => {
@@ -105,6 +132,8 @@ export default function DocumentsPage() {
       (d.client?.email || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  const { page, totalPages, items: pagedDocs, setPage } = usePagination(filteredDocs, PAGE_SIZE);
 
   const getStatusStyle = (status: DocStatus) => {
     switch (status) {
@@ -222,7 +251,7 @@ export default function DocumentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredDocs.map((doc) => (
+                  {pagedDocs.map((doc) => (
                   <tr key={doc.id} className="hover:bg-secondary/10 transition-colors group">
                     <td className="py-4 px-6 font-bold text-foreground">
                       <Link href={`/invoices/${doc.id}`} className="hover:text-primary transition-colors flex items-center gap-1.5">
@@ -277,7 +306,7 @@ export default function DocumentsPage() {
                         </Link>
                         
                         <button
-                          onClick={() => handleDelete(doc.id)}
+                          onClick={() => setDeleteTarget(doc.id)}
                           className="p-2 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-all"
                           title="Delete"
                         >
@@ -291,7 +320,19 @@ export default function DocumentsPage() {
             </table>
           </div>
         )}
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Document"
+        message="Are you sure you want to delete this document? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

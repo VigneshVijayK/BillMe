@@ -52,7 +52,7 @@ export default function Dashboard() {
   const invoices = documents.filter(d => d.doc_type === 'invoice');
   const totalInvoiced = invoices.reduce((acc, curr) => acc + curr.total, 0);
   const totalPaid = invoices.filter(d => d.status === 'paid').reduce((acc, curr) => acc + curr.total, 0);
-  const totalPending = invoices.filter(d => d.status === 'sent' || d.status === 'unpaid' || d.status === 'overdue').reduce((acc, curr) => acc + curr.total, 0);
+  const totalPending = invoices.filter(d => d.status !== 'paid' && d.status !== 'declined').reduce((acc, curr) => acc + curr.total, 0);
   const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
   const netProfit = totalPaid - totalExpenses;
   const profitMargin = totalPaid > 0 ? (netProfit / totalPaid) * 100 : 0;

@@ -13,8 +13,11 @@ import {
 import { db } from '../../../lib/supabase';
 import { Document, Profile } from '../../../types';
 import { getCurrencySymbol } from '../../../lib/countries';
+import ConfirmModal from '../../../components/ConfirmModal';
+import { useToast } from '../../../lib/toast';
 
 export default function DocumentDetails() {
+  const { toast } = useToast();
   const params = useParams();
   const router = useRouter();
   const docId = params.id as string;
@@ -23,12 +26,21 @@ export default function DocumentDetails() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [template, setTemplate] = useState<'modern' | 'minimal' | 'classic'>('modern');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (!docId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+      return;
+    }
     async function loadData() {
       try {
-        const document = await db.getDocumentById(docId);
-        const businessProfile = await db.getProfile();
+        const [document, businessProfile] = await Promise.all([
+          db.getDocumentById(docId),
+          db.getProfile(),
+        ]);
         setDoc(document);
         setProfile(businessProfile);
       } catch (err) {
@@ -37,7 +49,7 @@ export default function DocumentDetails() {
         setLoading(false);
       }
     }
-    if (docId) loadData();
+    loadData();
   }, [docId]);
 
   const handlePrint = () => {
@@ -46,19 +58,30 @@ export default function DocumentDetails() {
 
   const handleStatusChange = async (newStatus: Document['status']) => {
     if (!doc) return;
-    const success = await db.updateDocumentStatus(doc.id, newStatus);
-    if (success) {
-      setDoc({ ...doc, status: newStatus });
+    try {
+      const success = await db.updateDocumentStatus(doc.id, newStatus);
+      if (success) {
+        setDoc({ ...doc, status: newStatus });
+        toast(`Document marked as ${newStatus}`, 'success');
+      }
+    } catch {
+      toast('Failed to update document status', 'error');
     }
   };
 
   const handleDelete = async () => {
     if (!doc) return;
-    if (confirm('Are you sure you want to delete this document permanently?')) {
+    setDeleting(true);
+    try {
       const success = await db.deleteDocument(doc.id);
       if (success) {
+        toast('Document deleted successfully', 'success');
         router.push('/invoices');
       }
+    } catch {
+      toast('Failed to delete document', 'error');
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -131,7 +154,7 @@ export default function DocumentDetails() {
           </button>
 
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteModal(true)}
             className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs border border-red-500/20 transition-all"
           >
             <Trash2 size={14} />
@@ -351,6 +374,16 @@ export default function DocumentDetails() {
         </div>
 
       </div>
+      <ConfirmModal
+        open={showDeleteModal}
+        title="Delete Document"
+        message="Are you sure you want to delete this document permanently? This action cannot be undone."
+        confirmLabel="Delete Forever"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }

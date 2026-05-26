@@ -1,18 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../../lib/auth';
 
 export default function SignUp() {
-  const router = useRouter();
   const { signUp } = useAuth();
   const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,13 +19,36 @@ export default function SignUp() {
     setLoading(true);
 
     const { error: signUpError } = await signUp(email, password, businessName);
+    setLoading(false);
     if (signUpError) {
       setError(signUpError);
-      setLoading(false);
     } else {
-      router.push('/dashboard');
+      setConfirmationSent(true);
     }
   };
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm glass-panel rounded-3xl p-8 border border-border space-y-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center font-black text-2xl text-primary-foreground shadow-[0_0_25px_rgba(139,92,246,0.6)] mx-auto">
+            B
+          </div>
+          <h1 className="text-2xl font-black tracking-tight">Check your email</h1>
+          <p className="text-sm text-muted-foreground">
+            We&apos;ve sent a confirmation link to <strong className="text-foreground">{email}</strong>. 
+            Please confirm your email address to activate your account.
+          </p>
+          <Link
+            href="/sign-in"
+            className="inline-block w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all"
+          >
+            Go to Sign In
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
