@@ -21,6 +21,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, businessName: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   enterDemoMode: () => void;
 }
@@ -88,8 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             currency: 'INR',
             country: 'India',
           });
-        } catch {
-          // Profile creation failure is non-fatal — user can set it up in Settings
+        } catch (e) {
+          console.error('Profile creation on signup failed:', e);
         }
       }
       return { error: null };
@@ -112,6 +113,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
     } catch (e: unknown) {
       console.error('Google sign-in error:', e);
+    }
+  };
+
+  const signInWithApple = async () => {
+    try {
+      const s = getSupabase();
+      const { error } = await s.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: typeof window !== 'undefined'
+            ? `${window.location.origin}/callback`
+            : undefined,
+        },
+      });
+      if (error) throw error;
+    } catch (e: unknown) {
+      console.error('Apple sign-in error:', e);
     }
   };
 
@@ -139,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isDemo, signIn, signUp, signInWithGoogle, signOut, enterDemoMode }}>
+    <AuthContext.Provider value={{ user, loading, isDemo, signIn, signUp, signInWithGoogle, signInWithApple, signOut, enterDemoMode }}>
       {children}
     </AuthContext.Provider>
   );

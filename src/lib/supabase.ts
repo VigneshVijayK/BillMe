@@ -164,7 +164,9 @@ export const db = {
     const { data: { user } } = await s.auth.getUser();
     const { data, error } = await s.from('profiles').select('*').eq('id', user?.id).single();
     if (error) {
-      if (!data) throw new Error('Profile not found. Please complete your business settings.');
+      if (error.code === 'PGRST116') {
+        throw new Error('Profile not found. Please complete your business settings.');
+      }
       throw error;
     }
     cacheSet(cacheKey, data);
@@ -179,7 +181,9 @@ export const db = {
       return d.profile;
     }
     const s = getSupabase();
-    const { data, error } = await s.from('profiles').upsert(profile).select().single();
+    const { data: { user } } = await s.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const { data, error } = await s.from('profiles').upsert({ ...profile, id: user.id }).select().single();
     if (error) throw error;
     cacheClear();
     return data;
