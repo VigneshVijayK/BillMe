@@ -280,9 +280,9 @@ export const db = {
 
     const { show_payment_info, ...dbDoc } = doc;
 
-    let { data: docResult, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select('*, clients(*)').limit(1);
+    let { data: docResult, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select().limit(1);
     if (docErr && docErr.message?.includes('show_payment_info')) {
-      const result = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select('*, clients(*)').limit(1);
+      const result = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select().limit(1);
       docResult = result.data;
       docErr = result.error;
     }
@@ -295,7 +295,7 @@ export const db = {
     const { data: itemsResult, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
     if (itemsErr) throw itemsErr;
 
-    return { ...savedDoc, client: savedDoc.clients, items: itemsResult || [] };
+    return { ...savedDoc, client: null, items: itemsResult || [] };
   },
 
   async updateDocumentStatus(id: string, status: Document['status']): Promise<boolean> {

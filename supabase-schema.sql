@@ -213,7 +213,7 @@ create policy "Users manage own document items" on document_items
   for all using (
     exists (
       select 1 from documents
-      where documents.id = document_items.document_id
+      where documents.id = document_id
       and documents.user_id = auth.uid()
     )
   );
