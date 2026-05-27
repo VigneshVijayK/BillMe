@@ -277,8 +277,21 @@ export const db = {
 
     const s = getSupabase();
     const { data: { user } } = await s.auth.getUser();
-    const { data: savedDoc, error: docErr } = await s.from('documents').insert({ ...doc, user_id: user?.id }).select('*, clients(*)').single();
-    if (docErr) throw docErr;
+    if (!user) throw new Error('Not authenticated');
+
+    const { show_payment_info, ...dbDoc } = doc;
+    const { data: savedDoc, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select('*, clients(*)').single();
+    if (docErr) {
+      if (docErr.message?.includes('show_payment_info')) {
+        const { data: fallbackDoc, error: fallbackErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select('*, clients(*)').single();
+        if (fallbackErr) throw fallbackErr;
+        const itemsToInsert = items.map(i => ({ ...i, document_id: fallbackDoc.id }));
+        const { data: savedItems, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
+        if (itemsErr) throw itemsErr;
+        return { ...fallbackDoc, client: fallbackDoc.clients, items: savedItems, show_payment_info: false };
+      }
+      throw docErr;
+    }
     const itemsToInsert = items.map(i => ({ ...i, document_id: savedDoc.id }));
     const { data: savedItems, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
     if (itemsErr) throw itemsErr;
