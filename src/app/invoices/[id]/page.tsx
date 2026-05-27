@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import html2pdf from 'html2pdf.js';
+import QRCode from 'qrcode';
 import {
   Printer,
   Trash2,
   CheckCircle,
   ArrowLeft,
-  Layout
+  Layout,
+  Banknote,
+  QrCode
 } from 'lucide-react';
 import { db } from '../../../lib/supabase';
 import { Document, Profile } from '../../../types';
@@ -29,6 +32,10 @@ export default function DocumentDetails() {
   const [template, setTemplate] = useState<'modern' | 'minimal' | 'classic'>('modern');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPaidModal, setShowPaidModal] = useState(false);
+  const [showUnpaidModal, setShowUnpaidModal] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!docId) {
@@ -53,13 +60,35 @@ export default function DocumentDetails() {
     loadData();
   }, [docId]);
 
-  const handlePrint = async () => {
+  useEffect(() => {
+    if (doc && profile?.upi_id && doc.show_payment_info) {
+      const upiStr = `upi://pay?pa=${profile.upi_id}&pn=${encodeURIComponent(profile.business_name || '')}&am=${doc.total}&cu=${doc.currency}&tn=${doc.doc_number}`;
+      QRCode.toDataURL(upiStr, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+        .then(setQrCodeUrl)
+        .catch(() => setQrCodeUrl(null));
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQrCodeUrl(null);
+    }
+  }, [doc, profile]);
+
+  const handlePrint = useCallback(async () => {
     if (!doc || !profile) return;
 
     const element = document.getElementById('invoice-preview');
     if (!element) return;
 
       try {
+        // Wait for all images to load before PDF generation
+        const images = element.querySelectorAll('img');
+        await Promise.all(Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }));
+
         const opt = {
           margin: 0.5,
           filename: `${doc.doc_number}.pdf`,
@@ -68,7 +97,10 @@ export default function DocumentDetails() {
             quality: 0.98
           },
           html2canvas: {
-            scale: 2
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
           },
           jsPDF: {
             unit: 'in' as const,
@@ -77,10 +109,8 @@ export default function DocumentDetails() {
           }
         };
 
-        // Wait a moment for any pending renders
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-        // Generate PDF
         await html2pdf().set(opt).from(element).save();
 
         toast('Invoice saved as PDF', 'success');
@@ -88,10 +118,11 @@ export default function DocumentDetails() {
         console.error('PDF generation error:', err);
         toast('Failed to generate PDF. Please try printing instead.', 'error');
       }
-  };
+  }, [doc, profile, toast]);
 
   const handleStatusChange = async (newStatus: Document['status']) => {
     if (!doc) return;
+    setUpdatingStatus(true);
     try {
       const success = await db.updateDocumentStatus(doc.id, newStatus);
       if (success) {
@@ -100,6 +131,10 @@ export default function DocumentDetails() {
       }
     } catch {
       toast('Failed to update document status', 'error');
+    } finally {
+      setUpdatingStatus(false);
+      setShowPaidModal(false);
+      setShowUnpaidModal(false);
     }
   };
 
@@ -167,14 +202,39 @@ export default function DocumentDetails() {
           </select>
         </div>
 
+        {/* Status Badge */}
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+          doc.status === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+          doc.status === 'overdue' ? 'bg-red-500/15 text-red-400 border border-red-500/30' :
+          doc.status === 'unpaid' || doc.status === 'sent' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+          'bg-zinc-500/15 text-zinc-400 border border-zinc-500/30'
+        }`}>
+          {doc.status}
+        </span>
+
         {/* Buttons */}
         <div className="flex flex-wrap gap-2.5">
-          {doc.status !== 'paid' && doc.doc_type === 'invoice' && (
+          {doc.doc_type === 'invoice' && doc.status === 'paid' && (
             <button
-              onClick={() => handleStatusChange('paid')}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs border border-emerald-500/20 transition-all"
+              onClick={() => setShowUnpaidModal(true)}
+              disabled={updatingStatus}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs border border-amber-500/20 transition-all disabled:opacity-50"
             >
               <CheckCircle size={14} />
+              <span>Revert to Unpaid</span>
+            </button>
+          )}
+          {doc.status !== 'paid' && doc.doc_type === 'invoice' && (
+            <button
+              onClick={() => setShowPaidModal(true)}
+              disabled={updatingStatus}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs border border-emerald-500/20 transition-all disabled:opacity-50"
+            >
+              {updatingStatus ? (
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+              ) : (
+                <CheckCircle size={14} />
+              )}
               <span>Mark Paid</span>
             </button>
           )}
@@ -198,7 +258,7 @@ export default function DocumentDetails() {
       </div>
 
       {/* Main Invoice Box */}
-      <div className={`p-6 sm:p-12 rounded-3xl print-card border border-border shadow-xl bg-card transition-all duration-300 ${
+      <div id="invoice-preview" className={`p-6 sm:p-12 rounded-3xl print-card border border-border shadow-xl bg-card transition-all duration-300 ${
         template === 'minimal' ? 'font-mono' : 'font-sans'
       }`}>
 
@@ -409,7 +469,67 @@ export default function DocumentDetails() {
           </div>
         </div>
 
+        {/* Payment Info Section */}
+        {doc.show_payment_info && (profile?.bank_name || profile?.upi_id) && (
+          <div className="mt-8 pt-8 border-t border-border print-break-inside">
+            <div className="flex items-center gap-2 mb-4">
+              <Banknote size={18} className="text-primary" />
+              <span className="text-sm font-bold text-foreground uppercase tracking-wider">Payment Information</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="payment-info-box space-y-2">
+                {profile.bank_name && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground text-xs font-semibold uppercase">Bank:</span>
+                    <p className="font-semibold text-foreground">{profile.bank_name}</p>
+                  </div>
+                )}
+                {profile.bank_account && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground text-xs font-semibold uppercase">A/C No:</span>
+                    <p className="font-semibold text-foreground font-mono">{profile.bank_account}</p>
+                  </div>
+                )}
+                {profile.bank_ifsc && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground text-xs font-semibold uppercase">IFSC:</span>
+                    <p className="font-semibold text-foreground font-mono">{profile.bank_ifsc}</p>
+                  </div>
+                )}
+              </div>
+              {profile.upi_id && qrCodeUrl && (
+                <div className="payment-info-box flex flex-col items-center justify-center text-center space-y-2">
+                  <QrCode size={18} className="text-primary" />
+                  <Image src={qrCodeUrl} alt="UPI QR Code" width={160} height={160} className="rounded-xl" unoptimized />
+                  <p className="text-xs text-muted-foreground">Scan to pay via UPI</p>
+                  <p className="text-xs font-mono font-semibold text-foreground">{profile.upi_id}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
+      <ConfirmModal
+        open={showPaidModal}
+        title="Mark as Paid"
+        message="Confirm that this invoice has been paid in full by the client."
+        confirmLabel="Confirm Payment"
+        variant="primary"
+        loading={updatingStatus}
+        onConfirm={() => handleStatusChange('paid')}
+        onCancel={() => setShowPaidModal(false)}
+      />
+      <ConfirmModal
+        open={showUnpaidModal}
+        title="Revert to Unpaid"
+        message="This will change the invoice status back to unpaid. Are you sure?"
+        confirmLabel="Revert to Unpaid"
+        variant="danger"
+        loading={updatingStatus}
+        onConfirm={() => handleStatusChange('unpaid')}
+        onCancel={() => setShowUnpaidModal(false)}
+      />
       <ConfirmModal
         open={showDeleteModal}
         title="Delete Document"

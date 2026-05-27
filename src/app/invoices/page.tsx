@@ -26,6 +26,8 @@ export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [paidTarget, setPaidTarget] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -64,6 +66,7 @@ export default function DocumentsPage() {
   };
 
   const handleStatusChange = async (id: string, newStatus: DocStatus) => {
+    setUpdatingStatus(true);
     try {
       const success = await db.updateDocumentStatus(id, newStatus);
       if (success) {
@@ -72,6 +75,9 @@ export default function DocumentsPage() {
       }
     } catch {
       toast('Failed to update document status', 'error');
+    } finally {
+      setUpdatingStatus(false);
+      setPaidTarget(null);
     }
   };
 
@@ -103,6 +109,7 @@ export default function DocumentsPage() {
         total: estimate.total,
         notes: estimate.notes,
         terms: estimate.terms,
+        show_payment_info: false,
       }, estimate.items.map(item => ({
         description: item.description,
         quantity: item.quantity,
@@ -288,8 +295,9 @@ export default function DocumentsPage() {
 
                           {doc.doc_type === 'invoice' && doc.status !== 'paid' && (
                             <button
-                              onClick={() => handleStatusChange(doc.id, 'paid')}
-                              className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-400 transition-all text-xs font-bold hidden sm:inline-flex"
+                              onClick={() => setPaidTarget(doc.id)}
+                              disabled={updatingStatus}
+                              className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-400 transition-all text-xs font-bold hidden sm:inline-flex disabled:opacity-50"
                               title="Mark as Paid"
                             >
                               Mark Paid
@@ -323,6 +331,16 @@ export default function DocumentsPage() {
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
+      <ConfirmModal
+        open={!!paidTarget}
+        title="Mark as Paid"
+        message="Confirm that this invoice has been paid in full by the client."
+        confirmLabel="Confirm Payment"
+        variant="primary"
+        loading={updatingStatus}
+        onConfirm={() => paidTarget && handleStatusChange(paidTarget, 'paid')}
+        onCancel={() => setPaidTarget(null)}
+      />
       <ConfirmModal
         open={!!deleteTarget}
         title="Delete Document"

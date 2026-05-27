@@ -21,6 +21,10 @@ create table if not exists profiles (
   tax_number text,
   currency text default 'INR',
   country text default 'India',
+  bank_name text,
+  bank_account text,
+  bank_ifsc text,
+  upi_id text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -56,6 +60,7 @@ create table if not exists documents (
   total numeric(12,2) default 0,
   notes text,
   terms text,
+  show_payment_info boolean default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

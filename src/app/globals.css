@@ -127,5 +127,20 @@ body {
     background: transparent !important;
     padding: 0 !important;
   }
+  .print-break-inside {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
+.payment-info-box {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  background: hsl(var(--card));
+}
+
+.light-theme .payment-info-box {
+  background: rgba(255, 255, 255, 0.7);
 }
 

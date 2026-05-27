@@ -59,6 +59,7 @@ export default function NewDocument() {
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState('');
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Auto-generate invoice/estimate number & dates
@@ -166,10 +167,12 @@ export default function NewDocument() {
 
   const handleSave = async () => {
     if (!selectedClientId) {
+      toast('Please select or create a client first.', 'warning');
       return;
     }
 
     if (items.some(item => !item.description.trim())) {
+      toast('All line items must have a description.', 'warning');
       return;
     }
 
@@ -197,6 +200,7 @@ export default function NewDocument() {
         total: total,
         notes: notes,
         terms: terms,
+        show_payment_info: showPaymentInfo,
       }, docItems);
  
        // Trigger Confetti
@@ -460,6 +464,20 @@ export default function NewDocument() {
                 onChange={(e) => setTerms(e.target.value)}
                 className="w-full bg-secondary/25 border border-border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPaymentInfo(!showPaymentInfo)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  showPaymentInfo ? 'bg-primary' : 'bg-secondary'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showPaymentInfo ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+              <span className="text-sm font-medium text-foreground">Show Payment Info on Invoice</span>
             </div>
           </div>
 

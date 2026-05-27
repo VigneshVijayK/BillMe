@@ -24,6 +24,10 @@ export default function SettingsPage() {
   const [currency, setCurrency] = useState('INR');
   const [country, setCountry] = useState(DEFAULT_COUNTRY);
   const [logoUrl, setLogoUrl] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [bankIfsc, setBankIfsc] = useState('');
+  const [upiId, setUpiId] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [profileHistory, setProfileHistory] = useState<{
@@ -49,6 +53,10 @@ export default function SettingsPage() {
         setCurrency(p.currency || 'INR');
         setCountry(p.country || DEFAULT_COUNTRY);
         setLogoUrl(p.logo_url || '');
+        setBankName(p.bank_name || '');
+        setBankAccount(p.bank_account || '');
+        setBankIfsc(p.bank_ifsc || '');
+        setUpiId(p.upi_id || '');
       } catch (err) {
         console.error(err);
       } finally {
@@ -92,6 +100,10 @@ export default function SettingsPage() {
         currency,
         country,
         logo_url: logoUrl,
+        bank_name: bankName,
+        bank_account: bankAccount,
+        bank_ifsc: bankIfsc,
+        upi_id: upiId,
       });
       setProfile(updated);
     } catch (err) {
@@ -270,6 +282,54 @@ export default function SettingsPage() {
               />
             </div>
 
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">UPI ID (for QR payments)</label>
+              <input
+                type="text"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                className="w-full bg-secondary/30 border border-border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="e.g. business@upi"
+              />
+            </div>
+          </div>
+
+          {/* Bank Details Section */}
+          <div className="pt-6 border-t border-border">
+            <h3 className="text-sm font-bold text-foreground mb-1">Bank Account Details</h3>
+            <p className="text-xs text-muted-foreground mb-4">Displayed on invoices when payment info is toggled on.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Bank Name</label>
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="w-full bg-secondary/30 border border-border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="e.g. State Bank of India"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Account Number</label>
+                <input
+                  type="text"
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value)}
+                  className="w-full bg-secondary/30 border border-border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="e.g. 123456789012"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">IFSC Code</label>
+                <input
+                  type="text"
+                  value={bankIfsc}
+                  onChange={(e) => setBankIfsc(e.target.value)}
+                  className="w-full bg-secondary/30 border border-border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="e.g. SBIN0001234"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end pt-4 border-t border-border">

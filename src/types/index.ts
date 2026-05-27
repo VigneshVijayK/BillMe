@@ -11,6 +11,10 @@ export interface Profile {
   tax_number: string;
   currency: string;
   country: string;
+  bank_name?: string;
+  bank_account?: string;
+  bank_ifsc?: string;
+  upi_id?: string;
 }
 
 export interface Client {
@@ -45,12 +49,13 @@ export interface Document {
   status: DocStatus;
   currency: string;
   subtotal: number;
-  tax_rate: number; // general tax rate
+  tax_rate: number;
   tax_amount: number;
   discount: number;
   total: number;
   notes: string;
   terms: string;
+  show_payment_info: boolean;
   created_at: string;
   items?: DocumentItem[];
   client?: Client | null;

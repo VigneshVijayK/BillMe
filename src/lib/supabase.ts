@@ -70,6 +70,10 @@ const DEMO_PROFILE: Profile = {
   tax_number: 'GSTIN-27AAAAA0000A1Z1',
   currency: 'INR',
   country: 'India',
+  bank_name: 'State Bank of India',
+  bank_account: '123456789012',
+  bank_ifsc: 'SBIN0001234',
+  upi_id: 'demo@upi',
 };
 
 function genId(prefix = ''): string {
