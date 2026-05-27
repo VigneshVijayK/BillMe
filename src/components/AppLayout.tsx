@@ -128,7 +128,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <aside
         className={`fixed inset-y-0 left-0 w-72 max-w-[85vw] transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 md:static md:flex md:w-64 flex-col glass-panel border-r border-border p-5 no-print transition-all duration-300 ease-in-out z-50 bg-background md:bg-transparent overflow-y-auto`}
+        } md:translate-x-0 md:static md:flex md:w-64 flex-col border-r border-border p-5 no-print transition-all duration-300 ease-in-out z-50 bg-card md:bg-transparent md:glass-panel overflow-y-auto shadow-2xl md:shadow-none`}
       >
         <div className="hidden md:flex items-center space-x-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-black text-xl text-primary-foreground shadow-[0_0_20px_rgba(139,92,246,0.6)] shrink-0">

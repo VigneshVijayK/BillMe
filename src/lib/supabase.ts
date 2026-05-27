@@ -254,12 +254,11 @@ export const db = {
       return { ...doc, client: d.clients.find(c => c.id === doc.client_id) || null, items: d.documentItems.filter(item => item.document_id === doc.id) };
     }
     const s = getSupabase();
-    const { data, error } = await s.from('documents').select('*, clients(*), document_items(*)').eq('id', id).single();
-    if (error) {
-      if (!data) return null;
-      throw error;
-    }
-    return { ...data, client: data.clients, items: data.document_items };
+    const { data, error } = await s.from('documents').select('*, clients(*), document_items(*)').eq('id', id).limit(1);
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    const row = data[0];
+    return { ...row, client: row.clients, items: row.document_items };
   },
 
   async saveDocument(doc: Omit<Document, 'id' | 'user_id' | 'created_at' | 'items' | 'client'>, items: Omit<DocumentItem, 'id' | 'document_id'>[]): Promise<Document> {
@@ -280,22 +279,23 @@ export const db = {
     if (!user) throw new Error('Not authenticated');
 
     const { show_payment_info, ...dbDoc } = doc;
-    const { data: savedDoc, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select('*, clients(*)').single();
-    if (docErr) {
-      if (docErr.message?.includes('show_payment_info')) {
-        const { data: fallbackDoc, error: fallbackErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select('*, clients(*)').single();
-        if (fallbackErr) throw fallbackErr;
-        const itemsToInsert = items.map(i => ({ ...i, document_id: fallbackDoc.id }));
-        const { data: savedItems, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
-        if (itemsErr) throw itemsErr;
-        return { ...fallbackDoc, client: fallbackDoc.clients, items: savedItems, show_payment_info: false };
-      }
-      throw docErr;
+
+    let { data: docResult, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select('*, clients(*)').limit(1);
+    if (docErr && docErr.message?.includes('show_payment_info')) {
+      const result = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select('*, clients(*)').limit(1);
+      docResult = result.data;
+      docErr = result.error;
     }
+    if (docErr || !docResult || docResult.length === 0) {
+      throw docErr || new Error('Failed to create document');
+    }
+
+    const savedDoc = docResult[0];
     const itemsToInsert = items.map(i => ({ ...i, document_id: savedDoc.id }));
-    const { data: savedItems, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
+    const { data: itemsResult, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
     if (itemsErr) throw itemsErr;
-    return { ...savedDoc, client: savedDoc.clients, items: savedItems };
+
+    return { ...savedDoc, client: savedDoc.clients, items: itemsResult || [] };
   },
 
   async updateDocumentStatus(id: string, status: Document['status']): Promise<boolean> {

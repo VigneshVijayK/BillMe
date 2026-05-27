@@ -54,36 +54,44 @@ export default function NewDocument() {
   ]);
 
   // Adjustments
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('');
   const [taxRate, setTaxRate] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState('');
   const [terms, setTerms] = useState('');
   const [showPaymentInfo, setShowPaymentInfo] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formReady, setFormReady] = useState(false);
 
-  // Auto-generate invoice/estimate number & dates
+  // Load profile and clients, then set defaults
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const year = new Date().getFullYear();
-    const prefix = docType === 'invoice' ? 'INV' : 'EST';
-    const seq = Date.now().toString(36).toUpperCase();
-    setDocNumber(`${prefix}-${year}-${seq}`);
+    async function initForm() {
+      const year = new Date().getFullYear();
+      const prefix = docType === 'invoice' ? 'INV' : 'EST';
+      const seq = Date.now().toString(36).toUpperCase();
+      setDocNumber(`${prefix}-${year}-${seq}`);
 
-    const today = new Date().toISOString().split('T')[0];
-    setIssueDate(today);
+      const today = new Date().toISOString().split('T')[0];
+      setIssueDate(today);
 
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 14);
-    setDueDate(futureDate.toISOString().split('T')[0]);
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 14);
+      setDueDate(futureDate.toISOString().split('T')[0]);
 
-    db.getClients().then(setClients);
+      const [clientsData, profileData] = await Promise.allSettled([
+        db.getClients(),
+        db.getProfile(),
+      ]);
 
-    db.getProfile().then(p => {
-      if (p.currency) setCurrency(p.currency);
-      if (p.logo_url) setLogoPreview(p.logo_url);
-    });
-    /* eslint-enable react-hooks/set-state-in-effect */
+      if (clientsData.status === 'fulfilled') setClients(clientsData.value);
+      if (profileData.status === 'fulfilled') {
+        if (profileData.value.currency) setCurrency(profileData.value.currency);
+        if (profileData.value.logo_url) setLogoPreview(profileData.value.logo_url);
+      }
+
+      setFormReady(true);
+    }
+    initForm();
   }, [docType]);
 
   const handleAddItem = () => {
@@ -219,6 +227,15 @@ export default function NewDocument() {
        setSaving(false);
      }
   };
+
+  if (!formReady || !currency) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="text-muted-foreground font-medium">Setting up document form...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-16 animate-in fade-in duration-300">
