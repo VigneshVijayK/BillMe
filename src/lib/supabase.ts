@@ -261,42 +261,63 @@ export const db = {
     return { ...row, client: row.clients, items: row.document_items };
   },
 
-  async saveDocument(doc: Omit<Document, 'id' | 'user_id' | 'created_at' | 'items' | 'client'>, items: Omit<DocumentItem, 'id' | 'document_id'>[]): Promise<Document> {
-    const docId = genId();
-    const newDoc: Document = { ...doc, id: docId, user_id: 'demo-user', created_at: new Date().toISOString() };
-    const newItems: DocumentItem[] = items.map((item) => ({ ...item, id: genId('item'), document_id: docId }));
+    async saveDocument(doc: Omit<Document, 'id' | 'user_id' | 'created_at' | 'items' | 'client'>, items: Omit<DocumentItem, 'id' | 'document_id'>[]): Promise<Document> {
+      if (demoMode) {
+        // Ensure client_id is preserved in demo mode
+        const newDoc: Document = { ...doc, id: genId('doc'), user_id: 'demo-user', created_at: new Date().toISOString(), client_id: doc.client_id, items: [] };
+        const newItems: DocumentItem[] = items.map(i => ({ ...i, id: genId('item'), document_id: newDoc.id }));
+        const d = getDemoDB();
+        d.documents.unshift(newDoc);
+        d.documentItems.push(...newItems);
+        saveDemoDB(d);
+        return {
+          ...newDoc,
+          items: newItems,
+          client: d.clients.find(c => c.id === newDoc.client_id) || null,
+        } as Document;
+      }
 
-    if (demoMode) {
-      const d = getDemoDB();
-      d.documents.unshift(newDoc);
-      d.documentItems.push(...newItems);
-      saveDemoDB(d);
-      return { ...newDoc, items: newItems, client: d.clients.find(c => c.id === newDoc.client_id) || null };
-    }
+      const s = getSupabase();
+      const { data: { user } } = await s.auth.getUser();
+      if (!user) throw new Error('You must be logged in to save a document.');
 
-    const s = getSupabase();
-    const { data: { user } } = await s.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+      const { show_payment_info, ...dbDoc } = doc;
+      // Insert document and request related client data
+      let { data: docResult, error: docErr } = await s
+        .from('documents')
+        .insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false })
+        .select('*, client_id')
+        .limit(1);
+      if (docErr && docErr.message?.includes('show_payment_info')) {
+        const result = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select('*, client_id').limit(1);
+        docResult = result.data;
+        docErr = result.error;
+      }
+      if (docErr || !docResult || docResult.length === 0) {
+        throw docErr || new Error('Failed to create document');
+      }
+      const savedDoc = docResult[0];
 
-    const { show_payment_info, ...dbDoc } = doc;
+      // Insert items
+      const itemsToInsert = items.map(i => ({ ...i, document_id: savedDoc.id }));
+      const { data: itemsResult, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
+      if (itemsErr) throw itemsErr;
 
-    let { data: docResult, error: docErr } = await s.from('documents').insert({ ...dbDoc, user_id: user.id, show_payment_info: show_payment_info ?? false }).select().limit(1);
-    if (docErr && docErr.message?.includes('show_payment_info')) {
-      const result = await s.from('documents').insert({ ...dbDoc, user_id: user.id }).select().limit(1);
-      docResult = result.data;
-      docErr = result.error;
-    }
-    if (docErr || !docResult || docResult.length === 0) {
-      throw docErr || new Error('Failed to create document');
-    }
+      // Fetch client if exists
+      let client: any = null;
+      if (savedDoc.client_id) {
+        const { data: clientData, error: clientErr } = await s.from('clients').select('*').eq('id', savedDoc.client_id).single();
+        if (!clientErr) client = clientData;
+      }
 
-    const savedDoc = docResult[0];
-    const itemsToInsert = items.map(i => ({ ...i, document_id: savedDoc.id }));
-    const { data: itemsResult, error: itemsErr } = await s.from('document_items').insert(itemsToInsert).select();
-    if (itemsErr) throw itemsErr;
+      return {
+        ...savedDoc,
+        client,
+        items: itemsResult || [],
+      } as Document;
+    },
 
-    return { ...savedDoc, client: null, items: itemsResult || [] };
-  },
+  
 
   async updateDocumentStatus(id: string, status: Document['status']): Promise<boolean> {
     if (demoMode) {
